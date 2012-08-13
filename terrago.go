@@ -17,18 +17,63 @@ func initGrid(n int) [][]float64 {
   return grid
 }
 
-func iterGrid(grid [][]float64) [][]float64 {
-  // create new grid double the size
-  // start by making 2x with moving all i and j to 2i and 2j
+// n must be >= 1.
+func iterGrid(grid [][]float64, n int) [][]float64 {
   oldLen := len(grid)
   newLen := oldLen * 2
   newGrid := initGrid(newLen) // TODO: randVal should take iteration count.
-  for y := 0; y < oldLen; y++ {
-    for x := 0; x < oldLen; x++ {
-      newGrid[x * 2][y * 2] = grid[x][y]
+
+  gridEach(grid, evenEven(newGrid, grid, n))
+  gridEach(grid, evenOdd(newGrid, grid, n))
+  return newGrid
+}
+
+func evenEven(newGrid [][]float64, grid [][]float64, n int) func(float64, int, 
+  int) {
+  return func(cell float64, x int, y int) {
+    newGrid[2 * x][2 * y] = cell
+  }
+}
+
+func evenOdd(newGrid [][]float64, grid [][]float64, n int) func(float64, int, 
+  int) {
+  return func(cell float64, x int, y int) {
+    indices := [][]int{
+      []int{x, y},
+      []int{x, y + 1},
+      []int{x + 1, y},
+      []int{x + 1, y + 1},
+    }
+    newGrid[2 * x + 1][2 * y + 1] = gridAverage(grid, indices) + randIter(n)
+  }
+}
+
+func gridEach(grid [][]float64, callback func(float64, int, int)) [][]float64 {
+  length := len(grid)
+  for y := 0; y < length; y++ {
+    for x := 0; x < length; x++ {
+      callback(grid[x][y], x, y)
     }
   }
-  return newGrid
+  return grid
+}
+
+func gridAverage(grid [][]float64, indices [][]int) float64 {
+  var sum float64 = 0.0
+  length := len(grid)
+  indicesLen := len(indices)
+  cells := make([]float64, 0, 4)
+  for i := 0; i < indicesLen; i++ {
+    x := indices[i][0]
+    y := indices[i][1]
+    if x >= 0 && y >= 0 && x < length && y < length {
+      cells = append(cells, grid[x][y])
+    }
+  }
+  for _, cell := range cells {
+    sum += cell
+  }
+  return sum / float64(len(cells))
 }
 
 func randVal() float64 {
@@ -59,7 +104,7 @@ func prettyPrint(grid [][]float64) {
 func main() {
   prevGrid := initGrid(9)
 
-  grid := iterGrid(prevGrid)
+  grid := iterGrid(prevGrid, 1)
 
   prettyPrint(prevGrid)
   fmt.Println("-------------------------------------")
