@@ -1,5 +1,6 @@
 I am fractal terro^Hain generating thingy in go
 
+# Diamond-Square algo
 
 # Resources
 
