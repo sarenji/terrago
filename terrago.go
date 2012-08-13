@@ -6,8 +6,10 @@ import (
   "math/rand"
 )
 
-func initGrid(n int) [][]float64 {
-  grid := make([][]float64, n)
+type Grid [][]float64
+
+func initGrid(n int) Grid {
+  grid := make(Grid, n)
   for i := 0; i < n; i++ {
     grid[i] = make([]float64, n)
     for y := 0; y < n; y++ {
@@ -18,7 +20,7 @@ func initGrid(n int) [][]float64 {
 }
 
 // n must be >= 1.
-func iterGrid(grid [][]float64, n int) [][]float64 {
+func iterGrid(grid Grid, n int) Grid {
   oldLen := len(grid)
   newLen := oldLen * 2
   newGrid := initGrid(newLen) // TODO: randVal should take iteration count.
@@ -28,15 +30,13 @@ func iterGrid(grid [][]float64, n int) [][]float64 {
   return newGrid
 }
 
-func evenEven(newGrid [][]float64, grid [][]float64, n int) func(float64, int, 
-  int) {
+func evenEven(newGrid Grid, grid Grid, n int) func(float64, int, int) {
   return func(cell float64, x int, y int) {
     newGrid[2 * x][2 * y] = cell
   }
 }
 
-func evenOdd(newGrid [][]float64, grid [][]float64, n int) func(float64, int, 
-  int) {
+func evenOdd(newGrid Grid, grid Grid, n int) func(float64, int, int) {
   return func(cell float64, x int, y int) {
     indices := [][]int{
       []int{x, y},
@@ -48,7 +48,7 @@ func evenOdd(newGrid [][]float64, grid [][]float64, n int) func(float64, int,
   }
 }
 
-func gridEach(grid [][]float64, callback func(float64, int, int)) [][]float64 {
+func gridEach(grid Grid, callback func(float64, int, int)) Grid {
   length := len(grid)
   for y := 0; y < length; y++ {
     for x := 0; x < length; x++ {
@@ -58,7 +58,7 @@ func gridEach(grid [][]float64, callback func(float64, int, int)) [][]float64 {
   return grid
 }
 
-func gridAverage(grid [][]float64, indices [][]int) float64 {
+func gridAverage(grid Grid, indices [][]int) float64 {
   var sum float64 = 0.0
   length := len(grid)
   indicesLen := len(indices)
@@ -84,7 +84,7 @@ func randIter(iter int) float64 {
   return (rand.Float64() * 2.0 - 1.0) * math.Pow(2, 0.8 * float64(iter))
 }
 
-func prettyPrint(grid [][]float64) {
+func prettyPrint(grid Grid) {
   var sym string
   n := len(grid)
   for x := 0; x < n; x++ {
