@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"time"
 )
 
 type Grid [][]float64
@@ -132,5 +133,15 @@ func prettyPrintCompare(grid Grid) {
 }
 
 func main() {
-	prettyPrintCompare(initGrid(9))
+	//	prettyPrintCompare(initGrid(9))
+	grid := initGrid(3)
+
+	t0 := time.Now()
+	for i := 1; i <= 10; i++ {
+		grid = iterGrid(grid, i)
+	}
+	t1 := time.Now()
+	fmt.Printf("The call took %v to run.\n", t1.Sub(t0))
+
+	// ~ 1.6 secs for n=2 and 10 iterations
 }
