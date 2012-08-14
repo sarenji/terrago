@@ -9,6 +9,8 @@ import (
 
 type Grid [][]float64
 
+
+
 func randIter(iter int) float64 {
 	return (rand.Float64()*2.0 - 1.0) * math.Pow(2, 0.8*float64(iter))
 }
@@ -31,6 +33,8 @@ func iterGrid(grid Grid, n int) Grid {
 	oldLen := len(grid)
 	newLen := (oldLen-1)*2 + 1 // must be of form 2**n + 1
 	newGrid := initGrid(newLen)
+  c := make(chan int) // channel to count
+  counter := 0
 
 	// copy over old values
 	for y := 0; y < oldLen; y++ {
@@ -42,26 +46,51 @@ func iterGrid(grid Grid, n int) Grid {
 	// diamond step
 	for y := 1; y < newLen; y += 2 {
 		for x := 1; x < newLen; x += 2 {
-			diamond(newGrid, x, y, n)
-		}
+      counter++
+      go diamond(newGrid, x, y, n, c)
+    }
 	}
+
+  fmt.Println("A")
+  for {
+    for i := range c {
+      fmt.Println("one i plz?", i)
+      counter -= i
+      if counter == 0 {
+        break
+      }
+    }
+  }
+  fmt.Println("B")
 
 	// square step
 	for y := 0; y < newLen; y += 2 {
-		for x := 1; x < newLen; x += 2 {
-			square(newGrid, x, y, n)
+    for x := 1; x < newLen; x += 2 {
+      counter++
+      go square(newGrid, x, y, n, c)
 		}
 	}
 	for y := 1; y < newLen; y += 2 {
 		for x := 0; x < newLen; x += 2 {
-			square(newGrid, x, y, n)
+      counter++
+      go square(newGrid, x, y, n, c)
 		}
 	}
+  fmt.Println("C")
+
+  for {
+    for i := range c {
+      counter -= i
+      if counter == 0 {
+        break
+      }
+    }
+  }
 
 	return newGrid
 }
 
-func diamond(grid Grid, x int, y int, n int) {
+func diamond(grid Grid, x int, y int, n int, c chan int) {
 	var sum, num float64
 	var length int = len(grid)
 	if x-1 >= 0 {
@@ -77,9 +106,10 @@ func diamond(grid Grid, x int, y int, n int) {
 		sum, num = sum+grid[x][y+1], num+1
 	}
 	grid[x][y] = sum/num + randIter(n)
+  c <- 1
 }
 
-func square(grid Grid, x int, y int, n int) {
+func square(grid Grid, x int, y int, n int, c chan int) {
 	var sum, num float64
 	var length int = len(grid)
 	if x-1 >= 0 {
@@ -99,6 +129,7 @@ func square(grid Grid, x int, y int, n int) {
 		}
 	}
 	grid[x][y] = sum/num + randIter(n)
+  c <- 1
 }
 
 // Print functions
@@ -141,7 +172,7 @@ func main() {
 		grid = iterGrid(grid, i)
 	}
 	t1 := time.Now()
-	fmt.Printf("The call took %v to run.\n", t1.Sub(t0))
+  fmt.Printf("The call took %v to run.\n", t1.Sub(t0))
 
 	// ~ 1.6 secs for n=2 and 10 iterations
 }
