@@ -8,42 +8,18 @@ import (
 
 type Grid [][]float64
 
-// Utils
-
-func randVal() float64 {
-	return randIter(0)
-}
-
 func randIter(iter int) float64 {
 	return (rand.Float64()*2.0 - 1.0) * math.Pow(2, 0.8*float64(iter))
 }
 
 // Grid functions
 
-func gridAverage(grid Grid, indices [][]int) float64 {
-	var sum float64 = 0.0
-	length := len(grid)
-	indicesLen := len(indices)
-	cells := make([]float64, 0, 4)
-	for i := 0; i < indicesLen; i++ {
-		x := indices[i][0]
-		y := indices[i][1]
-		if x >= 0 && y >= 0 && x < length && y < length {
-			cells = append(cells, grid[x][y])
-		}
-	}
-	for _, cell := range cells {
-		sum += cell
-	}
-	return sum / float64(len(cells))
-}
-
 func initGrid(n int) Grid {
 	grid := make(Grid, n)
 	for i := 0; i < n; i++ {
 		grid[i] = make([]float64, n)
 		for y := 0; y < n; y++ {
-			grid[i][y] = randVal()
+			grid[i][y] = randIter(0)
 		}
 	}
 	return grid
@@ -52,58 +28,76 @@ func initGrid(n int) Grid {
 // n must be >= 1.
 func iterGrid(grid Grid, n int) Grid {
 	oldLen := len(grid)
-	newLen := (oldLen-1)*2 + 1
-	newGrid := initGrid(newLen) // TODO: randVal should take iteration count.
+	newLen := (oldLen-1)*2 + 1 // must be of form 2**n + 1
+	newGrid := initGrid(newLen)
 
-	// TODO array out of bounds - temp fix by +1 and -1
-	for y := 1; y < oldLen-1; y++ {
-		for x := 1; x < oldLen-1; x++ {
-			switch {
-			case x%2 == 0 && y%2 == 0: // Even|Even
-				evenEven(newGrid, grid, x, y, n)
-			case x%2 == 1 && y%2 == 1: // Odd|Odd
-				oddOdd(newGrid, grid, x, y, n)
-			case x%2 == 1 && y%2 == 0: // Odd|Even
-				oddEven(newGrid, grid, x, y, n)
-			case x%2 == 0 && y%2 == 1: // Even|Odd
-				evenOdd(newGrid, grid, x, y, n)
-			}
+	// copy over old values
+	for y := 0; y < oldLen; y++ {
+		for x := 0; x < oldLen; x++ {
+			newGrid[2*x][2*y] = grid[x][y]
+		}
+	}
+
+	// diamond step
+	for y := 1; y < newLen; y += 2 {
+		for x := 1; x < newLen; x += 2 {
+			diamond(newGrid, x, y, n)
+		}
+	}
+
+	// square step
+	for y := 0; y < newLen; y += 2 {
+		for x := 1; x < newLen; x += 2 {
+			square(newGrid, x, y, n)
+		}
+	}
+	for y := 1; y < newLen; y += 2 {
+		for x := 0; x < newLen; x += 2 {
+			square(newGrid, x, y, n)
 		}
 	}
 
 	return newGrid
 }
 
-// Even/Odd functions
-
-// (1)
-func evenEven(newGrid Grid, grid Grid, x int, y int, n int) {
-	newGrid[2*x][2*y] = grid[x][y]
-}
-
-// (2)
-func oddOdd(newGrid Grid, grid Grid, x int, y int, n int) {
-	indices := [][]int{
-		[]int{x, y},
-		[]int{x, y + 1},
-		[]int{x + 1, y},
-		[]int{x + 1, y + 1},
+func diamond(grid Grid, x int, y int, n int) {
+	var sum, num float64
+	var length int = len(grid)
+	if x-1 >= 0 {
+		sum, num = sum+grid[x-1][y], num+1
 	}
-	newGrid[2*x+1][2*y+1] = gridAverage(grid, indices) + randIter(n)
+	if x+1 < length {
+		sum, num = sum+grid[x+1][y], num+1
+	}
+	if y-1 >= 0 {
+		sum, num = sum+grid[x][y-1], num+1
+	}
+	if y+1 < length {
+		sum, num = sum+grid[x][y+1], num+1
+	}
+	grid[x][y] = sum/num + randIter(n)
 }
 
-// (3)
-func evenOdd(newGrid Grid, grid Grid, x int, y int, n int) {
-	sum := (3.0*grid[x][y] + 3.0*grid[x][y+1]) / 8.0
-	sum += (grid[x-1][y] + grid[x-1][y+1] + grid[x+1][y] + grid[x+1][y+1]) / 16
-	newGrid[2*x][2*y+1] = sum
-}
-
-// (4)
-func oddEven(newGrid Grid, grid Grid, x int, y int, n int) {
-	sum := (3.0*grid[x][y] + 3.0*grid[x+1][y]) / 8.0
-	sum += (grid[x][y-1] + grid[x+1][y-1] + grid[x][y+1] + grid[x+1][y+1]) / 16
-	newGrid[2*x+1][2*y] = sum
+func square(grid Grid, x int, y int, n int) {
+	var sum, num float64
+	var length int = len(grid)
+	if x-1 >= 0 {
+		if y-1 >= 0 {
+			sum, num = sum+grid[x-1][y-1], num+1
+		}
+		if y+1 < length {
+			sum, num = sum+grid[x-1][y+1], num+1
+		}
+	}
+	if x+1 < length {
+		if y-1 >= 0 {
+			sum, num = sum+grid[x+1][y-1], num+1
+		}
+		if y+1 < length {
+			sum, num = sum+grid[x+1][y+1], num+1
+		}
+	}
+	grid[x][y] = sum/num + randIter(n)
 }
 
 // Print functions
