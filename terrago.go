@@ -3,9 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
+	"log"
 	"math"
 	"math/rand"
 	"os"
+	"os"
+	"runtime/pprof"
 	"runtime/pprof"
 	"time"
 )
@@ -174,6 +180,44 @@ func prettyPrintCompare(grid Grid, c chan int) {
 	prettyPrint(newGrid)
 }
 
+func render2D(grid Grid) {
+	img := image.NewNRGBA(image.Rect(0, 0, len(grid), len(grid[0])))
+	bounds := img.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		realY := y - bounds.Min.Y
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			realX := x - bounds.Min.X
+			img.SetNRGBA(x, y, calcColor(grid[realX][realY]))
+		}
+	}
+
+	// create PNG
+	w, err := os.Create("output.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer w.Close()
+	err = png.Encode(w, img)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func calcColor(value float64) color.NRGBA {
+	var r, g, b uint8
+
+	switch {
+	case value < 0:
+		b = 255
+	case value <= 1:
+		g = uint8(value * 255)
+	default:
+		g = 255
+	}
+
+	return color.NRGBA{R: r, G: g, B: b, A: 255}
+}
+
 func main() {
 	flag.Parse()
 	if *cpuprofile != "" {
@@ -197,6 +241,9 @@ func main() {
 	}
 	t1 := time.Now()
 	fmt.Printf("The call took %v to run.\n", t1.Sub(t0))
+
+	render2D(grid)
+	fmt.Println("Created PNG.")
 
 	// ~ 1.6 secs for n=2 and 10 iterations
 }
