@@ -2,7 +2,7 @@ I am fractal terro^Hain generating thingy in go
 
 # TODO
 
-* Try to copy array for each segment
+* Figure out a way to send messages between processes
 
 * Make 2D pic
 * Make 3D pic

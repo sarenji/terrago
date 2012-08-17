@@ -9,10 +9,8 @@ import (
 	"log"
 	"math"
 	"math/rand"
-	"os"
-	"os"
-	"runtime/pprof"
-	"runtime/pprof"
+  "os"
+  "runtime/pprof"
 	"time"
 )
 
