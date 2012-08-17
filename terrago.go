@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime/pprof"
+	"strconv"
 	"time"
 )
 
@@ -21,7 +22,7 @@ const NCPU = 4
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func randIter(iter int) float64 {
-	return (rand.Float64()*2.0 - 1.0) * math.Pow(2, 0.8*float64(iter))
+	return (rand.Float64()*2.0 - 1.0) * math.Pow(2, -0.8*float64(iter))
 }
 
 // Grid functions
@@ -32,7 +33,7 @@ func initGrid(n int) Grid {
 	for i := 0; i < n; i++ {
 		grid[i] = make([]float64, n)
 		for y := 0; y < n; y++ {
-			grid[i][y] = randIter(0)
+			grid[i][y] = 0
 		}
 	}
 	return grid
@@ -110,6 +111,7 @@ func squareSegment(grid Grid, offset int, n int, c chan int) {
 func diamond(grid Grid, x int, y int, n int) {
 	var sum, num float64
 	var length int = len(grid)
+
 	if x-1 >= 0 {
 		sum, num = sum+grid[x-1][y], num+1
 	}
@@ -157,11 +159,11 @@ func prettyPrint(grid Grid) {
 			switch cell := grid[x][y]; {
 			case cell < -0.5:
 				sym = "  "
-			case -0.5 <= cell && cell < 0.5:
+			case -0.5 <= cell && cell < 0.1:
 				sym = ". "
-			case 0.5 <= cell && cell < 1.5:
+			case 0.1 <= cell && cell < .2:
 				sym = "+ "
-			case 1.5 <= cell:
+			case .2 <= cell:
 				sym = "# "
 			}
 			fmt.Print(sym)
@@ -170,6 +172,19 @@ func prettyPrint(grid Grid) {
 	}
 }
 
+func printHeights(grid Grid) {
+	var sym string
+	n := len(grid)
+	n = int(math.Min(float64(n), 10))
+	for x := 0; x < n; x++ {
+		for y := 0; y < n; y++ {
+			sym = strconv.FormatFloat(grid[x][y], 'f', 8, 64)
+			sym = sym[0:7] + " "
+			fmt.Print(sym)
+		}
+		fmt.Println()
+	}
+}
 func prettyPrintCompare(grid Grid, c chan int) {
 	prevGrid := grid
 	newGrid := iterGrid(prevGrid, 1, c)
@@ -232,7 +247,7 @@ func calcColor(grid Grid, min float64, max float64, val float64) color.NRGBA {
 	normalized := float64(val-min) / float64(diff)
 
 	switch {
-	case normalized < .1:
+	case normalized < .2:
 		b = 255
 	default:
 		g = uint8(normalized * 255)
@@ -267,6 +282,10 @@ func main() {
 
 	render2D(grid)
 	fmt.Println("Created PNG.")
+
+	printHeights(grid)
+
+	//prettyPrint(grid)
 
 	// ~ 1.6 secs for n=2 and 10 iterations
 }
