@@ -9,8 +9,8 @@ import (
 	"log"
 	"math"
 	"math/rand"
-  "os"
-  "runtime/pprof"
+	"os"
+	"runtime/pprof"
 	"time"
 )
 
@@ -181,11 +181,13 @@ func prettyPrintCompare(grid Grid, c chan int) {
 func render2D(grid Grid) {
 	img := image.NewNRGBA(image.Rect(0, 0, len(grid), len(grid[0])))
 	bounds := img.Bounds()
+	min := takeMin(grid)
+	max := takeMax(grid)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		realY := y - bounds.Min.Y
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			realX := x - bounds.Min.X
-			img.SetNRGBA(x, y, calcColor(grid[realX][realY]))
+			img.SetNRGBA(x, y, calcColor(grid, min, max, grid[realX][realY]))
 		}
 	}
 
@@ -201,16 +203,39 @@ func render2D(grid Grid) {
 	}
 }
 
-func calcColor(value float64) color.NRGBA {
+func takeMin(grid Grid) float64 {
+	min := grid[0][0]
+	for y := 0; y < len(grid[0]); y++ {
+		for x := 0; x < len(grid); x++ {
+			if grid[x][y] < min {
+				min = grid[x][y]
+			}
+		}
+	}
+	return min
+}
+
+func takeMax(grid Grid) float64 {
+	max := grid[0][0]
+	for y := 0; y < len(grid[0]); y++ {
+		for x := 0; x < len(grid); x++ {
+			if grid[x][y] > max {
+				max = grid[x][y]
+			}
+		}
+	}
+	return max
+}
+func calcColor(grid Grid, min float64, max float64, val float64) color.NRGBA {
 	var r, g, b uint8
+	diff := max - min
+	normalized := float64(val-min) / float64(diff)
 
 	switch {
-	case value < 0:
+	case normalized < .1:
 		b = 255
-	case value <= 1:
-		g = uint8(value * 255)
 	default:
-		g = 255
+		g = uint8(normalized * 255)
 	}
 
 	return color.NRGBA{R: r, G: g, B: b, A: 255}
