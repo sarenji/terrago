@@ -1,9 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"time"
 )
 
@@ -11,12 +14,15 @@ type Grid [][]float64
 
 const NCPU = 4
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func randIter(iter int) float64 {
 	return (rand.Float64()*2.0 - 1.0) * math.Pow(2, 0.8*float64(iter))
 }
 
 // Grid functions
 
+// Creates a new grid of size n, with random heights.
 func initGrid(n int) Grid {
 	grid := make(Grid, n)
 	for i := 0; i < n; i++ {
@@ -46,6 +52,7 @@ func iterGrid(grid Grid, n int, c chan int) Grid {
 		go diamondSegment(newGrid, i, n, c)
 	}
 
+	// wait for all calculations to finish
 	for i := 0; i < NCPU; i++ {
 		<-c
 	}
@@ -55,6 +62,7 @@ func iterGrid(grid Grid, n int, c chan int) Grid {
 		go squareSegment(newGrid, i, n, c)
 	}
 
+	// wait for all calculations to finish
 	for i := 0; i < NCPU; i++ {
 		<-c
 	}
@@ -73,6 +81,8 @@ func diamondSegment(grid Grid, offset int, n int, c chan int) {
 			diamond(grid, x, y, n)
 		}
 	}
+
+	// send segment finished to channel
 	c <- 1
 }
 
@@ -89,6 +99,7 @@ func squareSegment(grid Grid, offset int, n int, c chan int) {
 		}
 	}
 
+	// send segment finished to channel
 	c <- 1
 }
 
@@ -164,6 +175,18 @@ func prettyPrintCompare(grid Grid, c chan int) {
 }
 
 func main() {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			panic(err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			panic(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	c := make(chan int, NCPU)
 	//	prettyPrintCompare(initGrid(9), c)
 	grid := initGrid(3)
