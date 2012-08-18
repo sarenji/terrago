@@ -146,7 +146,7 @@ func square(grid Grid, x int, y int, n int) {
 	dyList := []int{1, -1, -1, 1}
 
 	// we sum corners around (x,y) to get average height of that area
-  for i := range dxList {
+	for i := range dxList {
 		dx, dy := dxList[i], dyList[i]
 		if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
 			sum += grid[x+dx][y+dy]
@@ -262,9 +262,14 @@ func calcColor(val float64, min float64, max float64) color.NRGBA {
 	delta := max - min
 	normalized := (val - min) / delta // we want (0,1)
 
-	r = uint8(normalized * 255)
-	g = uint8(normalized * 255)
-	b = uint8(normalized * 255)
+	//exponorm := math.Pow(normalized, 0.7) // is this ok?
+
+	switch {
+	case normalized < .2:
+		b = uint8(255 - normalized*255/.4)
+	default:
+		g = uint8(normalized * 255)
+	}
 
 	return color.NRGBA{R: r, G: g, B: b, A: 255}
 }
