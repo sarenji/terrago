@@ -80,42 +80,23 @@ func expand(newGrid Grid, oldGrid Grid, x int, y int) {
 	newGrid[2*x][2*y] = oldGrid[x][y]
 }
 
-// Takes a diamond and creates 4 squares.
-func diamond(grid Grid, x int, y int, n int) {
-	var sum, num float64
-	var length int = len(grid)
+// Performs the diamond step of the algorithm for all diamonds in the grid.
+func diamondSegment(grid Grid, offset int, n int, c chan int) {
+	length := len(grid)
 
 	// (x,y) with offset (dx, dy) pairs that form a diamond
 	dxList := []int{-1, 1, 0, 0}
 	dyList := []int{0, 0, -1, 1}
 
-	// we sum corners around (x,y) to get average height of that area
-	for i := range dxList {
-		dx, dy := dxList[i], dyList[i]
-		// checks if point is within bounds
-		if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
-			sum += grid[x+dx][y+dy]
-			num++
-		}
-	}
-
-	// (x,y) is average of four corners surrounding it plus randomness
-	grid[x][y] = sum/num + randIter(n)
-}
-
-// Performs the diamond step of the algorithm for all diamonds in the grid.
-func diamondSegment(grid Grid, offset int, n int, c chan int) {
-	length := len(grid)
-
 	// refactor similarites of these for loops
 	for y := 0; y < length; y += 2 {
 		for x := 1 + 2*offset; x < length; x += 2 * NCPU {
-			diamond(grid, x, y, n)
+			calcCenter(grid, dxList, dyList, x, y, n)
 		}
 	}
 	for y := 1; y < length; y += 2 {
 		for x := 0 + 2*offset; x < length; x += 2 * NCPU {
-			diamond(grid, x, y, n)
+			calcCenter(grid, dxList, dyList, x, y, n)
 		}
 	}
 
@@ -126,9 +107,14 @@ func diamondSegment(grid Grid, offset int, n int, c chan int) {
 // Performs the square step of the algorithm for all squares in the grid.
 func squareSegment(grid Grid, offset int, n int, c chan int) {
 	length := len(grid)
+
+	// dx, dy pairs that form a square
+	dxList := []int{-1, 1, -1, 1}
+	dyList := []int{1, -1, -1, 1}
+
 	for y := 1; y < length; y += 2 {
 		for x := 1 + 2*offset; x < length; x += 2 * NCPU {
-			square(grid, x, y, n)
+			calcCenter(grid, dxList, dyList, x, y, n)
 		}
 	}
 
@@ -136,14 +122,11 @@ func squareSegment(grid Grid, offset int, n int, c chan int) {
 	c <- 1
 }
 
-// takes a square and creates 4 diamonds.
-func square(grid Grid, x int, y int, n int) {
+// Takes the average of points and updates center point
+// (dxList[i], dyList[i]), i=0..3 are points surrounding center
+func calcCenter(grid Grid, dxList, dyList []int, x, y, n int) {
 	var sum, num float64
 	var length int = len(grid)
-
-	// dx, dy pairs that form a square
-	dxList := []int{-1, 1, -1, 1}
-	dyList := []int{1, -1, -1, 1}
 
 	// we sum corners around (x,y) to get average height of that area
 	for i := range dxList {
