@@ -272,6 +272,8 @@ func main() {
 
 	c := make(chan int, NCPU)
 	//	prettyPrintCompare(initGrid(9), c)
+	rand.Seed(time.Now().UnixNano())
+
 	grid := initGrid(2)
 	printHeights(grid)
 	println()
