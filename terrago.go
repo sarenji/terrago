@@ -33,7 +33,7 @@ func initGrid(n int) Grid {
 	for i := 0; i < n; i++ {
 		grid[i] = make([]float64, n)
 		for y := 0; y < n; y++ {
-			grid[i][y] = 0
+			grid[i][y] = randIter(0)
 		}
 	}
 	return grid
@@ -52,9 +52,9 @@ func iterGrid(grid Grid, n int, c chan int) Grid {
 		}
 	}
 
-	// diamond step
+	// square step
 	for i := 0; i < NCPU; i++ {
-		go diamondSegment(newGrid, i, n, c)
+		go squareSegment(newGrid, i, n, c)
 	}
 
 	// wait for all calculations to finish
@@ -62,9 +62,9 @@ func iterGrid(grid Grid, n int, c chan int) Grid {
 		<-c
 	}
 
-	// square step
+	// diamond step
 	for i := 0; i < NCPU; i++ {
-		go squareSegment(newGrid, i, n, c)
+		go diamondSegment(newGrid, i, n, c)
 	}
 
 	// wait for all calculations to finish
@@ -79,10 +79,42 @@ func expand(newGrid Grid, oldGrid Grid, x int, y int) {
 	newGrid[2*x][2*y] = oldGrid[x][y]
 }
 
+// Takes a diamond and creates 4 squares.
+func diamond(grid Grid, x int, y int, n int) {
+	var sum, num float64
+	var length int = len(grid)
+
+	// (x,y) with offset (dx, dy) pairs that form a diamond
+	dxList := []int{-1, 1, 0, 0}
+	dyList := []int{0, 0, -1, 1}
+
+	// we sum corners around (x,y) to get average height of that area
+	for _, dy := range dyList {
+		for _, dx := range dxList {
+			// checks if point is within bounds
+			if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
+				sum += grid[x+dx][y+dy]
+				num++
+			}
+		}
+	}
+
+	// (x,y) is average of four corners surrounding it plus randomness
+	grid[x][y] = sum/num + randIter(n)
+}
+
+// Performs the diamond step of the algorithm for all diamonds in the grid.
 func diamondSegment(grid Grid, offset int, n int, c chan int) {
 	length := len(grid)
-	for y := 1; y < length; y += 2 {
+
+	// refactor similarites of these for loops
+	for y := 0; y < length; y += 2 {
 		for x := 1 + 2*offset; x < length; x += 2 * NCPU {
+			diamond(grid, x, y, n)
+		}
+	}
+	for y := 1; y < length; y += 2 {
+		for x := 0 + 2*offset; x < length; x += 2 * NCPU {
 			diamond(grid, x, y, n)
 		}
 	}
@@ -91,15 +123,11 @@ func diamondSegment(grid Grid, offset int, n int, c chan int) {
 	c <- 1
 }
 
+// Performs the square step of the algorithm for all squares in the grid.
 func squareSegment(grid Grid, offset int, n int, c chan int) {
 	length := len(grid)
-	for y := 0; y < length; y += 2 {
-		for x := 1 + 2*offset; x < length; x += 2 * NCPU {
-			square(grid, x, y, n)
-		}
-	}
 	for y := 1; y < length; y += 2 {
-		for x := 0 + 2*offset; x < length; x += 2 * NCPU {
+		for x := 1 + 2*offset; x < length; x += 2 * NCPU {
 			square(grid, x, y, n)
 		}
 	}
@@ -108,44 +136,25 @@ func squareSegment(grid Grid, offset int, n int, c chan int) {
 	c <- 1
 }
 
-func diamond(grid Grid, x int, y int, n int) {
-	var sum, num float64
-	var length int = len(grid)
-
-	if x-1 >= 0 {
-		sum, num = sum+grid[x-1][y], num+1
-	}
-	if x+1 < length {
-		sum, num = sum+grid[x+1][y], num+1
-	}
-	if y-1 >= 0 {
-		sum, num = sum+grid[x][y-1], num+1
-	}
-	if y+1 < length {
-		sum, num = sum+grid[x][y+1], num+1
-	}
-	grid[x][y] = sum/num + randIter(n)
-}
-
+// takes a square and creates 4 diamonds.
 func square(grid Grid, x int, y int, n int) {
 	var sum, num float64
 	var length int = len(grid)
-	if x-1 >= 0 {
-		if y-1 >= 0 {
-			sum, num = sum+grid[x-1][y-1], num+1
-		}
-		if y+1 < length {
-			sum, num = sum+grid[x-1][y+1], num+1
-		}
-	}
-	if x+1 < length {
-		if y-1 >= 0 {
-			sum, num = sum+grid[x+1][y-1], num+1
-		}
-		if y+1 < length {
-			sum, num = sum+grid[x+1][y+1], num+1
+
+	// dx, dy pairs that form a square
+	dxList := []int{-1, 1, -1, 1}
+	dyList := []int{1, -1, -1, 1}
+
+	// we sum corners around (x,y) to get average height of that area
+	for _, dy := range dyList {
+		for _, dx := range dxList {
+			if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
+				sum += grid[x+dx][y+dy]
+				num++
+			}
 		}
 	}
+
 	grid[x][y] = sum/num + randIter(n)
 }
 
@@ -193,16 +202,18 @@ func prettyPrintCompare(grid Grid, c chan int) {
 	prettyPrint(newGrid)
 }
 
+// Renders a 2D image of a grid.
 func render2D(grid Grid) {
 	img := image.NewNRGBA(image.Rect(0, 0, len(grid), len(grid[0])))
 	bounds := img.Bounds()
 	min := takeMin(grid)
 	max := takeMax(grid)
+	// image's bounds doesn't have to start at (0,0)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		realY := y - bounds.Min.Y
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			realX := x - bounds.Min.X
-			img.SetNRGBA(x, y, calcColor(grid, min, max, grid[realX][realY]))
+			img.SetNRGBA(x, y, calcColor(grid[realX][realY], min, max))
 		}
 	}
 
@@ -218,6 +229,7 @@ func render2D(grid Grid) {
 	}
 }
 
+// Find minimum value in grid.
 func takeMin(grid Grid) float64 {
 	min := grid[0][0]
 	for y := 0; y < len(grid[0]); y++ {
@@ -230,6 +242,7 @@ func takeMin(grid Grid) float64 {
 	return min
 }
 
+// Find maximum value in grid.
 func takeMax(grid Grid) float64 {
 	max := grid[0][0]
 	for y := 0; y < len(grid[0]); y++ {
@@ -241,17 +254,18 @@ func takeMax(grid Grid) float64 {
 	}
 	return max
 }
-func calcColor(grid Grid, min float64, max float64, val float64) color.NRGBA {
-	var r, g, b uint8
-	diff := max - min
-	normalized := float64(val-min) / float64(diff)
 
-	switch {
-	case normalized < .2:
-		b = 255
-	default:
-		g = uint8(normalized * 255)
-	}
+// Calculates color for a value in the grid by normalizing it.
+func calcColor(val float64, min float64, max float64) color.NRGBA {
+	var r, g, b uint8
+
+	// TODO should not be in this function
+	delta := max - min
+	normalized := (val - min) / delta // we want (0,1)
+
+	r = uint8(normalized * 255)
+	g = uint8(normalized * 255)
+	b = uint8(normalized * 255)
 
 	return color.NRGBA{R: r, G: g, B: b, A: 255}
 }
@@ -271,10 +285,12 @@ func main() {
 
 	c := make(chan int, NCPU)
 	//	prettyPrintCompare(initGrid(9), c)
-	grid := initGrid(3)
-
+	grid := initGrid(2)
+	printHeights(grid)
+	println()
+	println()
 	t0 := time.Now()
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 11; i++ {
 		grid = iterGrid(grid, i, c)
 	}
 	t1 := time.Now()
