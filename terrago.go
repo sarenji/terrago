@@ -36,6 +36,7 @@ func initGrid(n int) Grid {
 			grid[i][y] = randIter(0)
 		}
 	}
+
 	return grid
 }
 
@@ -89,13 +90,12 @@ func diamond(grid Grid, x int, y int, n int) {
 	dyList := []int{0, 0, -1, 1}
 
 	// we sum corners around (x,y) to get average height of that area
-	for _, dy := range dyList {
-		for _, dx := range dxList {
-			// checks if point is within bounds
-			if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
-				sum += grid[x+dx][y+dy]
-				num++
-			}
+	for i := range dxList {
+		dx, dy := dxList[i], dyList[i]
+		// checks if point is within bounds
+		if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
+			sum += grid[x+dx][y+dy]
+			num++
 		}
 	}
 
@@ -146,12 +146,11 @@ func square(grid Grid, x int, y int, n int) {
 	dyList := []int{1, -1, -1, 1}
 
 	// we sum corners around (x,y) to get average height of that area
-	for _, dy := range dyList {
-		for _, dx := range dxList {
-			if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
-				sum += grid[x+dx][y+dy]
-				num++
-			}
+  for i := range dxList {
+		dx, dy := dxList[i], dyList[i]
+		if x+dx >= 0 && x+dx < length && y+dy >= 0 && y+dy < length {
+			sum += grid[x+dx][y+dy]
+			num++
 		}
 	}
 
