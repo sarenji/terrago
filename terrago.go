@@ -33,7 +33,7 @@ func initGrid(n int) Grid {
 	for i := 0; i < n; i++ {
 		grid[i] = make([]float64, n)
 		for y := 0; y < n; y++ {
-			grid[i][y] = randIter(0)
+			grid[i][y] = 0
 		}
 	}
 
