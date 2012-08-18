@@ -1,15 +1,17 @@
-I am fractal terro^Hain generating thingy in go
+Fractal terrain generator in Go.
 
-# TODO
+## Possible future direction
 
-* Figure out a way to send messages between processes
+* Figure out a way to make the processes more independent
+* Make 3D image
+* Use image file as seed
+* View a tile as a piece of work and find a way to merge two tiles with a goal function
 
-* Make 2D pic
-* Make 3D pic
+## Diamond-Square algorithm
 
-# Diamond-Square algo
-
-# Resources
+This is the algorithm used in the generator. For more information, see the
+following links.
 
 http://www.gameprogrammer.com/fractal.html
-https://github.com/S714726/fractally-island/blob/master/generator.hs
+
+http://en.wikipedia.org/wiki/Diamond-square_algorithm
